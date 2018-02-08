@@ -1,6 +1,7 @@
 package org.craftercms.studio.api.v1.service.aws;
 
 import java.io.InputStream;
+import java.util.Map;
 
 import org.craftercms.studio.api.v1.aws.s3.S3Output;
 import org.craftercms.studio.api.v1.exception.AwsException;
@@ -23,5 +24,7 @@ public interface S3Service {
      * @throws AwsException if an error occurs
      */
     S3Output uploadFile(String site, String profileId, String filename, InputStream content) throws AwsException;
+
+    Map listFiles(String site, String profileId) throws AwsException;
 
 }
