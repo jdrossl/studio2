@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007-2019 Crafter Software Corporation. All rights reserved.
+ * Copyright (C) 2007-2019 Crafter Software Corporation. All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,7 +13,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
  */
 
 package org.craftercms.studio.impl.v2.service.cluster;
@@ -21,7 +20,6 @@ package org.craftercms.studio.impl.v2.service.cluster;
 import org.apache.commons.configuration2.HierarchicalConfiguration;
 import org.apache.commons.configuration2.tree.ImmutableNode;
 import org.craftercms.studio.api.v1.constant.GitRepositories;
-import org.craftercms.studio.api.v1.dal.SiteFeed;
 import org.craftercms.studio.api.v1.deployment.PreviewDeployer;
 import org.craftercms.studio.api.v1.log.Logger;
 import org.craftercms.studio.api.v1.log.LoggerFactory;
