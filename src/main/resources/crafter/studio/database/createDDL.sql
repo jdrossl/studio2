@@ -464,6 +464,18 @@ CREATE TABLE IF NOT EXISTS `item` (
     DEFAULT CHARSET = utf8
     ROW_FORMAT = DYNAMIC ;
 
+CREATE TABLE IF NOT EXISTS `item_translation_request` (
+  `id`                      BIGINT(20) NOT NULL AUTO_INCREMENT,
+  `source_id`               BIGINT(20)      NOT NULL,
+  `locale_code`             VARCHAR(16)     NOT NULL,
+  `date_requested`          TIMESTAMP       NOT NULL,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY `item_translation_request_ix_source`(`source_id`) REFERENCES `item` (`id`)
+)
+    ENGINE = InnoDB
+    DEFAULT CHARSET = utf8
+    ROW_FORMAT = DYNAMIC ;
+
 CREATE TABLE IF NOT EXISTS `item_translation` (
   `id`                      BIGINT(20) NOT NULL AUTO_INCREMENT,
   `record_last_updated`     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

@@ -4412,7 +4412,7 @@ paths:
                 siteId:
                   type: string
                   description: site ID
-                id:
+                ids:
                   type: array
                   description: id(s) of the item(s)
                   items:
@@ -4424,7 +4424,7 @@ paths:
                     type: string
               required:
                 - siteId
-                - path
+                - ids
                 - locales
       responses:
         '200':
