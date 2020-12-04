@@ -27,6 +27,7 @@ import org.craftercms.studio.model.AuthenticatedUser;
 import org.craftercms.studio.model.Site;
 
 import java.util.List;
+import java.util.Map;
 
 public interface UserService {
 
@@ -135,4 +136,11 @@ public interface UserService {
      */
     boolean validateToken(String token) throws UserNotFoundException, UserExternallyManagedException,
             ServiceLayerException;
+
+    Map<String, Map<String, String>> getUserProperties(String siteId) throws ServiceLayerException;
+
+    Map<String, String> updateUserProperties(String siteId, Map<String, String> propertiesToUpdate) throws ServiceLayerException;
+
+    Map<String, String> deleteUserProperties(String siteId, List<String> propertiesToDelete) throws ServiceLayerException;
+
 }

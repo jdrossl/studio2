@@ -16,6 +16,8 @@
 
 package org.craftercms.studio.impl.v2.service.security.internal;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.craftercms.commons.crypto.CryptoUtils;
 import org.craftercms.studio.api.v1.exception.ServiceLayerException;
@@ -25,13 +27,17 @@ import org.craftercms.studio.api.v1.exception.security.UserExternallyManagedExce
 import org.craftercms.studio.api.v1.exception.security.UserNotFoundException;
 import org.craftercms.studio.api.v1.log.Logger;
 import org.craftercms.studio.api.v1.log.LoggerFactory;
+import org.craftercms.studio.api.v1.service.security.SecurityService;
+import org.craftercms.studio.api.v1.service.site.SiteService;
 import org.craftercms.studio.api.v2.annotation.RetryingOperation;
 import org.craftercms.studio.api.v2.dal.Group;
 import org.craftercms.studio.api.v2.dal.UserDAO;
 import org.craftercms.studio.api.v2.dal.User;
+import org.craftercms.studio.api.v2.dal.UserProperty;
 import org.craftercms.studio.api.v2.exception.PasswordRequirementsFailedException;
 import org.craftercms.studio.api.v2.service.security.internal.GroupServiceInternal;
 import org.craftercms.studio.api.v2.service.security.internal.UserServiceInternal;
+import org.craftercms.studio.api.v2.service.site.SitesService;
 import org.craftercms.studio.api.v2.utils.StudioConfiguration;
 
 import java.util.HashMap;
@@ -44,6 +50,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.singletonMap;
+import static java.util.stream.Collectors.toMap;
 import static org.craftercms.studio.api.v2.dal.QueryParameterNames.EMAIL;
 import static org.craftercms.studio.api.v2.dal.QueryParameterNames.ENABLED;
 import static org.craftercms.studio.api.v2.dal.QueryParameterNames.EXTERNALLY_MANAGED;
@@ -71,6 +79,20 @@ public class UserServiceInternalImpl implements UserServiceInternal {
     private UserDAO userDao;
     private GroupServiceInternal groupServiceInternal;
     private StudioConfiguration studioConfiguration;
+    private SiteService siteService;
+
+    // TODO: Remove when everything is integrated with Spring Security
+    private SecurityService securityService;
+
+    public UserServiceInternalImpl(UserDAO userDao, GroupServiceInternal groupServiceInternal,
+                                   StudioConfiguration studioConfiguration, SiteService siteService,
+                                   SecurityService securityService) {
+        this.userDao = userDao;
+        this.groupServiceInternal = groupServiceInternal;
+        this.studioConfiguration = studioConfiguration;
+        this.siteService = siteService;
+        this.securityService = securityService;
+    }
 
     @Override
     public User getUserByIdOrUsername(long userId, String username) throws ServiceLayerException,
@@ -387,27 +409,55 @@ public class UserServiceInternalImpl implements UserServiceInternal {
         return user;
     }
 
-    public UserDAO getUserDao() {
-        return userDao;
+    @Override
+    public Map<String, Map<String, String>> getUserProperties(String siteId) throws ServiceLayerException {
+        var actualSiteId = StringUtils.isEmpty(siteId)? "studio_root" : siteId; //TODO: Get from config
+        var dbSiteId = siteService.getSite(actualSiteId).getId();
+        // TODO: Refactor to get the user from Spring Security
+        var username = securityService.getCurrentUser();
+        try {
+            var user = getUserByIdOrUsername(0, username);
+            // TODO: Properly support multiple sites when needed
+            // TODO: How to handle empty as a key?
+            return singletonMap(siteId, userDao.getUserProperties(user.getId(), dbSiteId).stream().collect(toMap(UserProperty::getKey, UserProperty::getValue)));
+        } catch (UserNotFoundException e) {
+            // This should never happen if the user is logged in...
+            return null;
+        }
     }
 
-    public void setUserDao(UserDAO userDao) {
-        this.userDao = userDao;
+    @Override
+    public Map<String, String> updateUserProperties(String siteId, Map<String, String> propertiesToUpdate) throws ServiceLayerException {
+        var actualSiteId = StringUtils.isEmpty(siteId)? "studio_root" : siteId; //TODO: Get from config
+        var dbSiteId = siteService.getSite(actualSiteId).getId();
+        // TODO: Refactor to get the user from Spring Security
+        var username = securityService.getCurrentUser();
+        try {
+            var user = getUserByIdOrUsername(0, username);
+            userDao.updateUserProperties(user.getId(), dbSiteId, propertiesToUpdate);
+
+            return userDao.getUserProperties(user.getId(), dbSiteId).stream().collect(toMap(UserProperty::getKey, UserProperty::getValue));
+        } catch (UserNotFoundException e) {
+            // This should never happen if the user is logged in...
+            return null;
+        }
     }
 
-    public GroupServiceInternal getGroupServiceInternal() {
-        return groupServiceInternal;
+    @Override
+    public Map<String, String> deleteUserProperties(String siteId, List<String> propertiesToDelete) throws ServiceLayerException {
+        var actualSiteId = StringUtils.isEmpty(siteId)? "studio_root" : siteId; //TODO: Get from config
+        var dbSiteId = siteService.getSite(actualSiteId).getId();
+        // TODO: Refactor to get the user from Spring Security
+        var username = securityService.getCurrentUser();
+        try {
+            var user = getUserByIdOrUsername(0, username);
+            userDao.deleteUserProperties(user.getId(), dbSiteId, propertiesToDelete);
+
+            return userDao.getUserProperties(user.getId(), dbSiteId).stream().collect(toMap(UserProperty::getKey, UserProperty::getValue));
+        } catch (UserNotFoundException e) {
+            // This should never happen if the user is logged in...
+            return null;
+        }
     }
 
-    public void setGroupServiceInternal(GroupServiceInternal groupServiceInternal) {
-        this.groupServiceInternal = groupServiceInternal;
-    }
-
-    public StudioConfiguration getStudioConfiguration() {
-        return studioConfiguration;
-    }
-
-    public void setStudioConfiguration(StudioConfiguration studioConfiguration) {
-        this.studioConfiguration = studioConfiguration;
-    }
 }

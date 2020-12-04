@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.craftercms.studio.api.v2.dal.QueryParameterNames.GIT_NAME;
+import static org.craftercms.studio.api.v2.dal.QueryParameterNames.SITE_ID;
+import static org.craftercms.studio.api.v2.dal.QueryParameterNames.USER_ID;
 
 public interface UserDAO {
 
@@ -142,4 +144,11 @@ public interface UserDAO {
      * @return User or null if not found
      */
     User getUserByGitName(@Param(GIT_NAME) String gitName);
+
+    List<UserProperty> getUserProperties(@Param(USER_ID) long userId, @Param(SITE_ID) long siteId);
+
+    void deleteUserProperties(@Param(USER_ID) long userId, @Param(SITE_ID) long siteId, @Param("keys") List<String> keys); //TODO: Extract key
+
+    void updateUserProperties(@Param(USER_ID) long userId, @Param(SITE_ID) long siteId, @Param("properties") Map<String, String> properties); //TODO: Extract key
+
 }

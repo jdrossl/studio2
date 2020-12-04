@@ -25,6 +25,7 @@ import org.craftercms.studio.api.v2.dal.Group;
 import org.craftercms.studio.api.v2.dal.User;
 
 import java.util.List;
+import java.util.Map;
 
 public interface UserServiceInternal {
 
@@ -70,4 +71,11 @@ public interface UserServiceInternal {
      * @return user
      */
     User getUserByGitName(String gitName) throws ServiceLayerException, UserNotFoundException;
+
+    Map<String, Map<String, String>> getUserProperties(String siteId) throws ServiceLayerException;
+
+    Map<String, String> updateUserProperties(String siteId, Map<String, String> propertiesToUpdate) throws ServiceLayerException;
+
+    Map<String, String> deleteUserProperties(String siteId, List<String> propertiesToDelete) throws ServiceLayerException;
+
 }
