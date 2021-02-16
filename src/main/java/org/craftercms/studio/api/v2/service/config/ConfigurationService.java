@@ -161,4 +161,6 @@ public interface ConfigurationService {
      */
     void invalidateConfiguration(String siteId, String module, String path, String environment);
 
+    String getCacheKey(String siteId, String module, String path, String environment);
+
 }

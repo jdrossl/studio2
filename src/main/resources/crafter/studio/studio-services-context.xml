@@ -301,6 +301,27 @@
 
     <bean id="studioEventService" class="org.craftercms.studio.impl.v1.service.event.EventServiceImpl" />
 
+    <bean id="defaultCacheInvalidator" class="org.craftercms.studio.impl.v2.utils.cache.DefaultCacheInvalidator"/>
+
+    <bean id="parsedCacheInvalidator" class="org.craftercms.studio.impl.v2.utils.cache.SuffixCacheInvalidator">
+        <constructor-arg value="parsed"/>
+    </bean>
+
+    <bean id="blobStoreCacheInvalidator" class="org.craftercms.studio.impl.v2.utils.cache.ConditionalCacheInvalidator">
+        <constructor-arg value="blob\-stores\-config\.xml"/>
+        <constructor-arg>
+            <bean class="org.craftercms.studio.impl.v2.utils.cache.PatternCacheInvalidator">
+                <constructor-arg value="blob\-store\-.+"/>
+            </bean>
+        </constructor-arg>
+    </bean>
+
+    <util:list id="configurationCacheInvalidators">
+        <ref bean="blobStoreCacheInvalidator"/>
+        <ref bean="parsedCacheInvalidator"/>
+        <ref bean="defaultCacheInvalidator"/>
+    </util:list>
+
     <bean id="configurationService"
           class="org.craftercms.studio.impl.v2.service.configuration.ConfigurationServiceImpl">
         <property name="contentService" ref="cstudioContentService" />
@@ -317,6 +338,7 @@
                   value="#{studioConfiguration.getProperty('studio.configuration.site.translation')}"/>
         <property name="itemServiceInternal" ref="itemServiceInternal" />
         <property name="configurationCache" ref="configurationCache"/>
+        <property name="cacheInvalidators" ref="configurationCacheInvalidators"/>
     </bean>
 
     <bean id="groupService" class="org.craftercms.studio.impl.v2.service.security.GroupServiceImpl">
@@ -358,12 +380,12 @@
 
     <bean id="userServiceInternal"
           class="org.craftercms.studio.impl.v2.service.security.internal.UserServiceInternalImpl">
-        <constructor-arg ref="groupServiceInternal"/>
-        <constructor-arg ref="userDAO"/>
-        <constructor-arg ref="studioConfiguration"/>
-        <constructor-arg ref="cstudioSiteServiceSimple"/>
-        <constructor-arg ref="cstudioSecurityService"/>
-        <constructor-arg ref="accessTokenServiceInternal"/>
+        <property name="groupServiceInternal" ref="groupServiceInternal"/>
+        <property name="userDao" ref="userDAO"/>
+        <property name="studioConfiguration" ref="studioConfiguration"/>
+        <property name="siteService" ref="cstudioSiteServiceSimple"/>
+        <property name="securityService" ref="cstudioSecurityService"/>
+        <property name="accessTokenService" ref="accessTokenServiceInternal"/>
     </bean>
 
     <bean id="organizationServiceInternal"
@@ -843,7 +865,7 @@
         <property name="configPath" value="#{studioConfiguration.getProperty('studio.blob.config.path')}"/>
         <property name="configurationResolver" ref="crafter.configurationResolver"/>
         <property name="contentRepository" ref="gitContentRepository"/>
-        <property name="cacheTemplate" ref="crafter.cacheTemplate"/>
+        <property name="configurationCache" ref="configurationCache"/>
     </bean>
 
     <bean id="s3BlobStore" class="org.craftercms.studio.impl.v2.repository.blob.s3.StudioAwsS3BlobStore" scope="prototype">
@@ -1190,7 +1212,8 @@
     <!--         AWS                            -->
     <!-- ////////////////////////////////////// -->
 
-    <bean id="crafter.configurationResolver" class="org.craftercms.commons.config.ConfigurationResolverImpl">
+    <bean id="crafter.configurationResolver"
+          class="org.craftercms.studio.impl.v2.repository.blob.StudioConfigurationResolverImpl">
         <constructor-arg
                 value="#{studioConfiguration.getProperty(T(org.craftercms.studio.api.v2.utils.StudioConfiguration).CONFIGURATION_ENVIRONMENT_ACTIVE)}"/>
         <constructor-arg
@@ -1198,6 +1221,8 @@
         <constructor-arg
                 value="#{studioConfiguration.getProperty(T(org.craftercms.studio.api.v2.utils.StudioConfiguration).CONFIGURATION_SITE_MUTLI_ENVIRONMENT_CONFIG_BASE_PATH_PATTERN)}"/>
         <constructor-arg ref="crafter.configurationReader"/>
+        <property name="configurationService" ref="configurationService"/>
+        <property name="configurationCache" ref="configurationCache" />
     </bean>
 
     <bean id="studioTranscoderProfileLoader" class="org.craftercms.studio.impl.v1.util.config.profiles.SiteAwareConfigProfileLoader">

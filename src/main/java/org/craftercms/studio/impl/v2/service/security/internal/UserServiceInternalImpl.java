@@ -82,15 +82,28 @@ public class UserServiceInternalImpl implements UserServiceInternal {
     private AccessTokenServiceInternal accessTokenService;
     private SecurityService securityService;
 
-    public UserServiceInternalImpl(UserDAO userDao, GroupServiceInternal groupServiceInternal,
-                                   StudioConfiguration studioConfiguration, SiteService siteService,
-                                   SecurityService securityService, AccessTokenServiceInternal accessTokenService) {
+    public void setUserDao(UserDAO userDao) {
         this.userDao = userDao;
+    }
+
+    public void setGroupServiceInternal(GroupServiceInternal groupServiceInternal) {
         this.groupServiceInternal = groupServiceInternal;
+    }
+
+    public void setStudioConfiguration(StudioConfiguration studioConfiguration) {
         this.studioConfiguration = studioConfiguration;
+    }
+
+    public void setSiteService(SiteService siteService) {
         this.siteService = siteService;
+    }
+
+    public void setAccessTokenService(AccessTokenServiceInternal accessTokenService) {
+        this.accessTokenService = accessTokenService;
+    }
+
+    public void setSecurityService(SecurityService securityService) {
         this.securityService = securityService;
-        this.accessTokenService= accessTokenService;
     }
 
     @Override
