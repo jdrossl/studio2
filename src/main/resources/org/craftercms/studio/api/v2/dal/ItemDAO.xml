@@ -580,4 +580,22 @@
         AND s.deleted = 0
         AND i.path = #{path}
     </select>
+
+    <select id="getContentTypeUsages" resultType="org.craftercms.studio.api.v2.dal.Item">
+        SELECT
+          I.path, I.system_type AS systemType
+        FROM
+          item I
+        LEFT JOIN
+          site S
+        ON
+          S.site_id = #{siteId}
+        AND
+          I.site_id = S.id
+        WHERE
+          (I.system_type IN ('page', 'component') AND I.content_type_id = #{contentType})
+        OR
+          (I.system_type = 'script' AND I.path = #{scriptPath})
+    </select>
+
 </mapper>

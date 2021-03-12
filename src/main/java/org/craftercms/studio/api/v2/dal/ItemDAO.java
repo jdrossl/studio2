@@ -487,4 +487,16 @@ public interface ItemDAO {
      * @return list of items paths
      */
     List<String> getSameCommitItems(@Param(SITE_ID) String siteId, @Param(PATH) String path);
+
+    /**
+     * Finds all items related to a given content-type
+     *
+     * @param siteId the id of the site
+     * @param contentType the id of the content-type
+     * @param scriptPath the path of the controller script
+     * @return the list of items
+     */
+    List<Item> getContentTypeUsages(@Param(SITE_ID) String siteId, @Param(CONTENT_TYPE) String contentType,
+                                    @Param("scriptPath") String scriptPath);
+
 }
