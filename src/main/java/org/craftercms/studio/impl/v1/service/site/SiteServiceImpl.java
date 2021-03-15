@@ -109,7 +109,6 @@ import org.craftercms.studio.api.v2.repository.ContentRepository;
 import org.craftercms.studio.api.v2.service.audit.internal.AuditServiceInternal;
 import org.craftercms.studio.api.v2.service.config.ConfigurationService;
 import org.craftercms.studio.api.v2.service.item.internal.ItemServiceInternal;
-import org.craftercms.studio.api.v2.service.notification.NotificationService;
 import org.craftercms.studio.api.v2.service.security.internal.GroupServiceInternal;
 import org.craftercms.studio.api.v2.service.security.internal.UserServiceInternal;
 import org.craftercms.studio.api.v2.service.site.internal.SitesServiceInternal;
@@ -179,9 +178,7 @@ public class SiteServiceImpl implements SiteService {
     protected SecurityService securityService;
     protected DeploymentService deploymentService;
     protected DmPageNavigationOrderService dmPageNavigationOrderService;
-    protected ContentTypeService contentTypeService;
     protected ImportService importService;
-    protected NotificationService notificationService;
     protected GeneralLockService generalLockService;
     protected RebuildRepositoryMetadata rebuildRepositoryMetadata;
     protected SyncDatabaseWithRepository syncDatabaseWithRepository;
@@ -446,7 +443,6 @@ public class SiteServiceImpl implements SiteService {
                 updateLastSyncedGitlogCommitId(siteId, lastCommitId);
 
                 logger.info("Reload site configuration");
-                reloadSiteConfiguration(siteId);
 
                 itemServiceInternal.updateParentIds(siteId, StringUtils.EMPTY);
             } catch (Exception e) {
@@ -771,7 +767,6 @@ public class SiteServiceImpl implements SiteService {
                 updateLastSyncedGitlogCommitId(siteId, firstCommitId);
 
                 logger.info("Loading configuration for site " + siteId);
-                reloadSiteConfiguration(siteId);
                 itemServiceInternal.updateParentIds(siteId, StringUtils.EMPTY);
             } catch (Exception e) {
                 success = false;
@@ -972,7 +967,6 @@ public class SiteServiceImpl implements SiteService {
                     updateLastSyncedGitlogCommitId(siteId, lastCommitId);
 
                     logger.info("Loading configuration for site " + siteId);
-                    reloadSiteConfiguration(siteId);
                     itemServiceInternal.updateParentIds(siteId, StringUtils.EMPTY);
                 } catch (Exception e) {
                     success = false;
@@ -1125,34 +1119,6 @@ public class SiteServiceImpl implements SiteService {
         }
 
         return blueprints.toArray(new SiteBlueprintTO[0]);
-    }
-
-    @Override
-    public void reloadSiteConfigurations() {
-        reloadGlobalConfiguration();
-        getAllAvailableSites();
-    }
-
-    @Override
-    @ValidateParams
-    public void reloadSiteConfiguration(@ValidateStringParam(name = "site") String site) {
-        reloadSiteConfiguration(site, true);
-    }
-
-    @Override
-    public void reloadSiteConfiguration(String site, boolean triggerEvent) {
-        SiteTO siteConfig = new SiteTO();
-        siteConfig.setSite(site);
-        siteConfig.setEnvironment(getEnvironment());
-        servicesConfig.reloadConfiguration(site);
-        notificationService.reloadConfiguration(site);
-        securityService.reloadConfiguration(site);
-        contentTypeService.reloadConfiguration(site);
-    }
-
-    @Override
-    public void reloadGlobalConfiguration() {
-        securityService.reloadGlobalConfiguration();
     }
 
     @Override
@@ -1780,24 +1746,12 @@ public class SiteServiceImpl implements SiteService {
         this.dmPageNavigationOrderService = dmPageNavigationOrderService;
     }
 
-    public ContentTypeService getContentTypeService() {
-        return contentTypeService;
-    }
-
-    public void setContentTypeService(ContentTypeService contentTypeService) {
-        this.contentTypeService = contentTypeService;
-    }
-
     public ImportService getImportService() {
         return importService;
     }
 
     public void setImportService(ImportService importService) {
         this.importService = importService;
-    }
-
-    public void setNotificationService(final NotificationService notificationService) {
-        this.notificationService = notificationService;
     }
 
     public GeneralLockService getGeneralLockService() {

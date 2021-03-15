@@ -172,7 +172,11 @@ public interface ConfigurationService {
      * @param environment the environment of the file
      * @return the key for the file
      */
-    String getCacheKey(String siteId, String module, String path, String environment);
+    default String getCacheKey(String siteId, String module, String path, String environment) {
+        return getCacheKey(siteId, module, path, environment, null);
+    }
+
+    String getCacheKey(String siteId, String module, String path, String environment, String suffix);
 
     /**
      * Invalidates the cache for the given file
@@ -190,4 +194,5 @@ public interface ConfigurationService {
      */
     void invalidateConfiguration(String siteId, String module, String path, String environment);
 
+    void clearCache(String siteId);
 }

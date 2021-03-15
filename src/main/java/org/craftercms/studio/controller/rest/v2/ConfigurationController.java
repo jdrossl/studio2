@@ -52,6 +52,17 @@ public class ConfigurationController {
     private ConfigurationService configurationService;
     private StudioConfiguration studioConfiguration;
 
+    @GetMapping("clear_cache")
+    public ResponseBody clearCache(@RequestParam String siteId) {
+        configurationService.clearCache(siteId);
+
+        var responseBody = new ResponseBody();
+        var result = new Result();
+        result.setResponse(OK);
+        responseBody.setResult(result);
+        return responseBody;
+    }
+
     @GetMapping("/get_configuration")
     public ResponseBody getConfiguration(@RequestParam(name = "siteId", required = true) String siteId,
                                          @RequestParam(name = "module", required = true) String module,

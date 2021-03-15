@@ -65,8 +65,6 @@ public interface ContentTypeService {
 
     boolean changeContentType(String site, String path, String contentType) throws ServiceLayerException;
 
-    void reloadConfiguration(String site);
-
     String getConfigPath();
 }
 

@@ -77,6 +77,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 
 import static java.lang.String.format;
+import static java.lang.String.join;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.io.FilenameUtils.getExtension;
 import static org.apache.commons.io.FilenameUtils.normalize;
@@ -185,12 +186,13 @@ public class ConfigurationServiceImpl implements ConfigurationService {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public Document getConfigurationAsDocument(@ProtectedResourceId(SITE_ID_RESOURCE_ID) String siteId, String module,
                                                String path, String environment) throws ServiceLayerException {
         var normalizedPath = normalize(path);
         var cacheKey = getCacheKey(siteId,module,normalizedPath, environment);
         try {
-            return (Document) configurationCache.get(cacheKey, () -> {
+            var config = (Optional<Document>) configurationCache.get(cacheKey, () -> {
                 logger.debug("CACHE MISS: {0}", cacheKey);
                 String content = getEnvironmentConfiguration(siteId, module, normalizedPath, environment);
                 Document retDocument = null;
@@ -206,9 +208,13 @@ public class ConfigurationServiceImpl implements ConfigurationService {
                     try (InputStream is = IOUtils.toInputStream(content, UTF_8)) {
                         retDocument = saxReader.read(is);
                     }
+                    return Optional.of(retDocument);
+                } else {
+                    return Optional.empty();
                 }
-                return retDocument;
             });
+
+            return config.orElse(null);
         } catch (ExecutionException e) {
             throw new ServiceLayerException("Error loading configuration", e);
         }
@@ -216,7 +222,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
 
     @Override
     public HierarchicalConfiguration<?> getXmlConfiguration(String siteId, String path) throws ConfigurationException {
-        var cacheKey = getCacheKey(siteId, null, path, null) + ":commons";
+        var cacheKey = getCacheKey(siteId, null, path, null, "commons");
         try {
             return (HierarchicalConfiguration<?>) configurationCache.get(cacheKey, () -> {
                 logger.debug("CACHE MISS: {0}", cacheKey);
@@ -302,7 +308,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
         invalidateConfiguration(siteId, module, path, environment);
     }
 
-    public String getCacheKey(String siteId, String module, String path, String environment) {
+    public String getCacheKey(String siteId, String module, String path, String environment, String suffix) {
         if (isNotEmpty(siteId)) {
             String fullPath = null;
             if (isNotEmpty(environment)) {
@@ -332,9 +338,17 @@ public class ConfigurationServiceImpl implements ConfigurationService {
                 }
             }
 
-            return format("%s:%s", siteId, fullPath);
+            if (isEmpty(suffix)) {
+                return join(":", siteId, fullPath);
+            } else {
+                return join(":", siteId, fullPath, suffix);
+            }
         } else {
-            return path;
+            if (isEmpty(suffix)) {
+                return path;
+            } else {
+                return join(":", path, suffix);
+            }
         }
     }
 
@@ -551,6 +565,14 @@ public class ConfigurationServiceImpl implements ConfigurationService {
         invalidateCache(cacheKey);
     }
 
+    @Override
+    public void clearCache(String siteId) {
+        logger.debug("Clearing configuration cache fir site {0}", siteId);
+        configurationCache.asMap().keySet().stream()
+                .filter(key -> startsWithIgnoreCase(key, siteId + ":"))
+                .forEach(this::invalidateCache);
+    }
+
     protected void invalidateCache(String key) {
         logger.debug("Invalidating cache: {0}", key);
         cacheInvalidators.forEach(invalidator -> invalidator.invalidate(configurationCache, key));
@@ -558,27 +580,28 @@ public class ConfigurationServiceImpl implements ConfigurationService {
 
     // Moved from SiteServiceImpl to be able to properly cache the object
     @Override
+    @SuppressWarnings("unchecked")
     public Map<String, Object> legacyGetConfiguration(String site, String path) throws ServiceLayerException {
         // anonymous object needed to access the non-final configContent variable in the lambda
         var ref = new Object() {
             String configContent;
         };
         String configPath = null;
-        String cacheKey;
+        String xmlCacheKey;
         String env = null;
         var useContentService = true;
         if (StringUtils.isEmpty(site)) {
             configPath = getGlobalConfigRoot() + path;
-            cacheKey = configPath;
+            xmlCacheKey = configPath;
         } else {
             if (path.startsWith(FILE_SEPARATOR + CONTENT_TYPE_CONFIG_FOLDER + FILE_SEPARATOR)) {
                 configPath = getSitesConfigPath() + path;
                 // the write config is receiving env = null so this needs to match
-                cacheKey = getCacheKey(site, MODULE_STUDIO, path, null);
+                xmlCacheKey = getCacheKey(site, MODULE_STUDIO, path, null);
             } else {
                 useContentService = false;
                 env = studioConfiguration.getProperty(CONFIGURATION_ENVIRONMENT_ACTIVE);
-                cacheKey = getCacheKey(site,MODULE_STUDIO, path, env);
+                xmlCacheKey = getCacheKey(site,MODULE_STUDIO, path, env);
             }
         }
 
@@ -587,18 +610,28 @@ public class ConfigurationServiceImpl implements ConfigurationService {
         String finalConfigPath = configPath;
         String finalEnv = env;
 
-        return convertNodesFromXml(() -> {
-            if (finalUseContentService) {
-                ref.configContent = contentService.getContentAsString(site, finalConfigPath);
-            } else {
-                ref.configContent = getConfigurationAsString(site, MODULE_STUDIO, path, finalEnv);
-            }
-            ref.configContent = ref.configContent.replaceAll("\"\\n([\\s]+)?+", "\" ");
-            ref.configContent = ref.configContent.replaceAll("\\n([\\s]+)?+", "");
-            ref.configContent = ref.configContent.replaceAll("<!--(.*?)-->", "");
+        var objCacheKey = xmlCacheKey + ":map";
 
-            return ref.configContent;
-        }, cacheKey);
+        try {
+            return (Map<String, Object>) configurationCache.get(objCacheKey, () ->
+                    convertNodesFromXml(() -> {
+                        if (finalUseContentService) {
+                            ref.configContent = contentService.getContentAsString(site, finalConfigPath);
+                        } else {
+                            ref.configContent = getConfigurationAsString(site, MODULE_STUDIO, path, finalEnv);
+                        }
+                        ref.configContent = ref.configContent.replaceAll("\"\\n([\\s]+)?+", "\" ");
+                        ref.configContent = ref.configContent.replaceAll("\\n([\\s]+)?+", "");
+                        ref.configContent = ref.configContent.replaceAll("<!--(.*?)-->", "");
+
+                        return ref.configContent;
+                    }, xmlCacheKey)
+            );
+        } catch (ExecutionException e) {
+            throw new ServiceLayerException("Error loading configuration", e);
+        } catch (ClassCastException e) {
+            throw new ServiceLayerException("Error loading configuration", e);
+        }
     }
 
     private Map<String, Object> convertNodesFromXml(Supplier<String> content, String cacheKey)
@@ -610,6 +643,8 @@ public class ConfigurationServiceImpl implements ConfigurationService {
             });
             return createMap(doc.getRootElement());
         } catch (ExecutionException e) {
+            throw new ServiceLayerException("Error loading configuration", e);
+        } catch (ClassCastException e) {
             throw new ServiceLayerException("Error loading configuration", e);
         }
     }

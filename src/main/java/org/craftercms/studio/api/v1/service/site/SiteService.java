@@ -209,14 +209,6 @@ public interface SiteService {
    	 */
    	SiteBlueprintTO[] getAvailableBlueprints();
 
-    void reloadSiteConfigurations();
-
-    void reloadSiteConfiguration(String site);
-
-    void reloadSiteConfiguration(String site, boolean triggerEvent);
-
-    void reloadGlobalConfiguration();
-
     /**
      * Synchronize Database with repository
      *

@@ -67,10 +67,6 @@ public interface SecurityService {
 
     Set<String> getUserPermissions(String site, String path, String user, List<String> groups);
 
-    void reloadConfiguration(String site);
-
-    void reloadGlobalConfiguration();
-
     /**
      * Check if user exists
      *
